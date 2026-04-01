@@ -16,12 +16,16 @@ const Vendor = require('../models/Vendor');
  *   req.vendor = vendor;
  *   next();
  *
+ * For menu item routes the :id param is still the vendor ID (passed in the URL
+ * as /api/vendors/:id/menu/...), so the same middleware works without changes.
+ *
  * Usage:
  *   router.put('/vendors/:id', authenticate, roleGuard('vendor'), ownershipGuard, handler);
  */
 const ownershipGuard = async (req, res, next) => {
   try {
-    const vendor = await Vendor.findById(req.params.id);
+    // req.vendor may already be populated by a previous middleware; skip re-fetch.
+    const vendor = req.vendor || (await Vendor.findById(req.params.id));
 
     if (!vendor) {
       return res.status(404).json({ error: 'Vendor not found' });
