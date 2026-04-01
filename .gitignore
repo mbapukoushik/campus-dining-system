@@ -1,0 +1,29 @@
+# Environment — NEVER commit real secrets
+.env
+.env.local
+.env.production
+
+# Dependencies
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/
+
+# Temporary extraction scripts
+extract_tdd.py
+tdd_content.txt
+
+# Build output
+dist/
+build/
