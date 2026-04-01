@@ -32,8 +32,13 @@ const connectDB = require('./config/db');
 const redis = require('./config/redis');
 const initPassport = require('./config/passport');
 
-const authRouter = require('./routes/auth');
-const authenticate = require('./middleware/authenticate');
+const authRouter    = require('./routes/auth');
+const vendorsRouter = require('./routes/vendors');
+const menuRouter    = require('./routes/menu');
+const reviewsRouter = require('./routes/reviews');
+const waitTimesRouter = require('./routes/waitTimes');
+const plannerRouter = require('./routes/planner');
+const authenticate  = require('./middleware/authenticate');
 
 const app = express();
 
@@ -91,12 +96,20 @@ app.use(passport.session());
 // Auth: POST /api/auth/google, GET /api/auth/google/callback, POST /api/auth/logout
 app.use('/api/auth', authRouter);
 
-// ──────────────────────────────────────────────────────────────────────────────
-// TODO (next slice): mount vendor, menu, review, wait-time, planner, admin routes
-// app.use('/api/vendors',  require('./routes/vendors'));
-// app.use('/api/planner',  require('./routes/planner'));
-// app.use('/api/admin',    require('./routes/admin'));
-// ──────────────────────────────────────────────────────────────────────────────
+// Vendor Operations (TDD §5.2) — GET public; write routes: JWT + ownershipGuard
+app.use('/api/vendors', vendorsRouter);
+
+// Menu CRUD (TDD §5.3) — nested under vendor; GET public; write: JWT + ownershipGuard
+app.use('/api/vendors/:id/menu', menuRouter);
+
+// Reviews (TDD §5.5 / §6.1 / §6.4) — GET public; POST: JWT + student role + rate limits
+app.use('/api/vendors/:id/reviews', reviewsRouter);
+
+// Wait Times (TDD §5.6 / §2.4) — GET public; POST: JWT + student role + 30-min rate limit
+app.use('/api/vendors/:id/wait-time', waitTimesRouter);
+
+// Budget Planner (TDD §5.4 / §2.2) — POST: JWT required; Affordability Algorithm v2
+app.use('/api/planner', plannerRouter);
 
 // ─── 7. /healthz Endpoint (TDD §6.5 / §7.4) ──────────────────────────────────
 //
