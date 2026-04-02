@@ -227,9 +227,21 @@ router.post(
       const clientIp = req.ip;
 
       // ── Validate vendor exists (TDD §6.2) ────────────────────────────────────
-      const vendorExists = await Vendor.exists({ _id: vendorId });
-      if (!vendorExists) {
+      const vendor = await Vendor.findById(vendorId).select('is_currently_open').lean();
+      if (!vendor) {
         return res.status(404).json({ error: 'Vendor not found' });
+      }
+
+      // ── Anomaly Freeze Gate (TDD §6.4) ──────────────────────────────────────
+      // If the vendor was frozen by the anomaly tripwire, block new review submissions.
+      if (!vendor.is_currently_open) {
+        // Check a dedicated Redis freeze flag for extra certainty
+        const freezeKey = `vendor:frozen:${vendorId}`;
+        const isFrozen = await redis.get(freezeKey);
+        // We block if vendor is closed — the tripwire sets is_currently_open: false
+        return res.status(423).json({
+          error: 'Reviews temporarily paused for quality review.',
+        });
       }
 
       // ── Rate Limit Check 1: Lifetime (1 per vendor — Redis) (TDD §6.1) ──────

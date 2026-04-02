@@ -6,21 +6,22 @@
  * Affordability Algorithm v2 (TDD §2.2 / §5.4)
  *
  * Algorithm Steps:
- *  1. Accept: budget (integer ₹), dietary_preference (optional), category (optional)
- *  2. Fetch all non-sold-out items from MongoDB (exclude is_sold_out: true)
- *  3. Apply dietary_preference filter if provided
- *  4. Apply category filter if provided
- *  5. Filter items where price <= budget
- *  6. Sort by price ascending (best-value-first)
- *  7. Group by vendor_id → pick the cheapest item per vendor
- *  8. Return recommendations with: vendor_id, item_name, price, category, dietary_tag, budget_remaining
+ *  1. Accept: budget (integer ₹), headcount (integer ≥1), dietary_preference (optional), category (optional)
+ *  2. Compute perPersonBudget = Math.floor(budget / headcount)
+ *  3. Fetch all non-sold-out items from MongoDB (exclude is_sold_out: true)
+ *  4. Apply dietary_preference filter if provided
+ *  5. Apply category filter if provided
+ *  6. Filter items where price <= perPersonBudget
+ *  7. Sort by price ascending (best-value-first)
+ *  8. Group by vendor_id → pick the cheapest item per vendor
+ *  9. Return max 3 recommendations with enriched vendor data
+ * 10. Inject max_spend_warning: true if the absolute cheapest item (pre-filter)
+ *     costs MORE than perPersonBudget (i.e. no item is affordable per-person)
  *
  * TDD §2.2 Anti-stuffing rule:
  *   - Max 3 recommendations returned total
- *   - budget_remaining = budget - price (per recommendation, not cumulative)
+ *   - budget_remaining = perPersonBudget - price (per recommendation)
  *   - If 0 items satisfy constraints → return { recommendations: [], message: 'No items within budget' }
- *
- * Called exclusively from routes/planner.js
  */
 
 const MenuItem = require('../models/MenuItem');
@@ -31,67 +32,87 @@ const Vendor = require('../models/Vendor');
  *
  * @param {Object} params
  * @param {number}  params.budget              - Total budget in ₹ (positive integer)
+ * @param {number} [params.headcount]          - Number of people (default: 1)
  * @param {string} [params.dietary_preference] - One of: 'veg', 'non-veg', 'vegan', 'jain'
  * @param {string} [params.category]           - One of the MENU_CATEGORIES enum values
- * @returns {Promise<{recommendations: Array, meta: Object}>}
+ * @returns {Promise<{recommendations: Array, meta: Object, max_spend_warning?: boolean}>}
  */
-async function buildRecommendations({ budget, dietary_preference, category }) {
-  // ─── Step 1: Validate budget ─────────────────────────────────────────────
+async function buildRecommendations({ budget, headcount = 1, dietary_preference, category }) {
+  // ─── Step 1: Validate inputs ──────────────────────────────────────────────
   if (!Number.isInteger(budget) || budget <= 0) {
     throw Object.assign(new Error('budget must be a positive integer'), { status: 400 });
   }
+  if (!Number.isInteger(headcount) || headcount < 1) {
+    throw Object.assign(new Error('headcount must be a positive integer'), { status: 400 });
+  }
 
-  // ─── Step 2: Build query — exclude sold-out items ────────────────────────
-  const query = { is_sold_out: false };
+  // ─── Step 2: Per-person budget ────────────────────────────────────────────
+  const perPersonBudget = Math.floor(budget / headcount);
 
-  // ─── Step 3: Dietary preference filter ───────────────────────────────────
+  // ─── Step 3: Build query — exclude sold-out items ────────────────────────
+  const baseQuery = { is_sold_out: false };
+
+  // ─── Step 4: Dietary preference filter ───────────────────────────────────
   if (dietary_preference) {
-    query.dietary_tag = dietary_preference;
+    baseQuery.dietary_tag = dietary_preference;
   }
 
-  // ─── Step 4: Category filter ──────────────────────────────────────────────
+  // ─── Step 5: Category filter ──────────────────────────────────────────────
   if (category) {
-    query.category = category;
+    baseQuery.category = category;
   }
 
-  // ─── Step 5: Fetch affordable items (price <= budget) ────────────────────
-  query.price = { $lte: budget };
+  // ─── max_spend_warning: find the cheapest item BEFORE applying budget cap ─
+  // If even the cheapest item > perPersonBudget, warn the user
+  const cheapestItem = await MenuItem.findOne(baseQuery).sort({ price: 1 }).lean();
+  const max_spend_warning = cheapestItem ? cheapestItem.price > perPersonBudget : false;
 
-  // Fetch sorted by price ascending (TDD §2.2: best-value-first)
-  const affordableItems = await MenuItem.find(query)
+  // ─── Step 6: Fetch affordable items (price <= perPersonBudget) ───────────
+  const affordableQuery = { ...baseQuery, price: { $lte: perPersonBudget } };
+
+  const affordableItems = await MenuItem.find(affordableQuery)
     .sort({ price: 1 })
     .lean();
 
-  // ─── Step 6: Group by vendor — pick cheapest per vendor ──────────────────
-  // Because items are already sorted by price ASC, the first occurrence per vendor IS the cheapest.
+  // ─── Step 7: Group by vendor — pick cheapest per vendor ──────────────────
   const vendorMap = new Map();
   for (const item of affordableItems) {
-    if (!vendorMap.has(item.vendor_id)) {
-      vendorMap.set(item.vendor_id, item);
+    if (!vendorMap.has(String(item.vendor_id))) {
+      vendorMap.set(String(item.vendor_id), item);
     }
   }
 
   if (vendorMap.size === 0) {
     return {
       recommendations: [],
-      message: 'No items within budget',
+      max_spend_warning,
+      message: max_spend_warning
+        ? `No items within per-person budget of ₹${perPersonBudget}`
+        : 'No items within budget',
+      meta: {
+        budget_submitted: budget,
+        headcount,
+        per_person_budget: perPersonBudget,
+        dietary_preference: dietary_preference || null,
+        category: category || null,
+        total_results: 0,
+      },
     };
   }
 
-  // ─── Step 7: Build recommendations (max 3, TDD §2.2) ─────────────────────
-  // Fetch vendor names to enrich the response
+  // ─── Step 8: Build recommendations (max 3, TDD §2.2) ─────────────────────
   const vendorIds = [...vendorMap.keys()];
   const vendors = await Vendor.find({ _id: { $in: vendorIds } })
     .select('stall_name location_tag is_currently_open')
     .lean();
   const vendorLookup = {};
   vendors.forEach((v) => {
-    vendorLookup[v._id] = v;
+    vendorLookup[String(v._id)] = v;
   });
 
   const recommendations = [];
   for (const [vendorId, item] of vendorMap.entries()) {
-    if (recommendations.length >= 3) break; // TDD §2.2: max 3
+    if (recommendations.length >= 3) break;
 
     recommendations.push({
       vendor_id: vendorId,
@@ -103,14 +124,17 @@ async function buildRecommendations({ budget, dietary_preference, category }) {
       price: item.price,
       category: item.category,
       dietary_tag: item.dietary_tag || null,
-      budget_remaining: budget - item.price,
+      budget_remaining: perPersonBudget - item.price,
     });
   }
 
   return {
     recommendations,
+    max_spend_warning,
     meta: {
       budget_submitted: budget,
+      headcount,
+      per_person_budget: perPersonBudget,
       dietary_preference: dietary_preference || null,
       category: category || null,
       total_results: recommendations.length,

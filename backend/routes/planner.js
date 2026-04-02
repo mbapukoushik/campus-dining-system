@@ -30,7 +30,7 @@ router.post(
   roleGuard('student', 'vendor', 'admin', 'support'),
   async (req, res) => {
     try {
-      const { budget, dietary_preference, category } = req.body;
+      const { budget, headcount, dietary_preference, category } = req.body;
 
       // ── Input validation ────────────────────────────────────────────────────
 
@@ -51,6 +51,12 @@ router.post(
         });
       }
 
+      // Validate optional headcount
+      const parsedHeadcount = headcount !== undefined ? Number(headcount) : 1;
+      if (!Number.isInteger(parsedHeadcount) || parsedHeadcount < 1 || parsedHeadcount > 100) {
+        return res.status(400).json({ error: 'headcount must be a positive integer (max 100)' });
+      }
+
       // Validate optional category
       if (category && !MENU_CATEGORIES.includes(category)) {
         return res.status(400).json({
@@ -60,6 +66,7 @@ router.post(
 
       const result = await buildRecommendations({
         budget: Number(budget),
+        headcount: parsedHeadcount,
         dietary_preference: dietary_preference || null,
         category: category || null,
       });
