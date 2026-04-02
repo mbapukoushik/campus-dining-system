@@ -115,6 +115,7 @@ app.use('/api/planner', plannerRouter);
 //
 // Access control (TDD §6.5):
 //   Allow: localhost (internal monitoring — UptimeRobot internal IP)
+
 //   Allow: authenticated JWT + admin role
 //   Deny: all other callers
 //
