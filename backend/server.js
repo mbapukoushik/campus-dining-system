@@ -33,6 +33,8 @@ const redis = require('./config/redis');
 const initPassport = require('./config/passport');
 
 const authRouter = require('./routes/auth');
+const vendorsRouter = require('./routes/vendors');
+const menuRouter = require('./routes/menu');
 const authenticate = require('./middleware/authenticate');
 
 const app = express();
@@ -91,17 +93,18 @@ app.use(passport.session());
 // Auth: POST /api/auth/google, GET /api/auth/google/callback, POST /api/auth/logout
 app.use('/api/auth', authRouter);
 
-// ──────────────────────────────────────────────────────────────────────────────
-// TODO (next slice): mount vendor, menu, review, wait-time, planner, admin routes
-// app.use('/api/vendors',  require('./routes/vendors'));
-// app.use('/api/planner',  require('./routes/planner'));
-// app.use('/api/admin',    require('./routes/admin'));
-// ──────────────────────────────────────────────────────────────────────────────
+// Vendor Operations (Member 2 — TDD §5.2)
+app.use('/api/vendors', vendorsRouter);
+
+// Menu CRUD — nested under vendors (Member 2 — TDD §5.3)
+// e.g. GET /api/vendors/:id/menu, POST /api/vendors/:id/menu, etc.
+app.use('/api/vendors/:id/menu', menuRouter);
 
 // ─── 7. /healthz Endpoint (TDD §6.5 / §7.4) ──────────────────────────────────
 //
 // Access control (TDD §6.5):
 //   Allow: localhost (internal monitoring — UptimeRobot internal IP)
+
 //   Allow: authenticated JWT + admin role
 //   Deny: all other callers
 //
