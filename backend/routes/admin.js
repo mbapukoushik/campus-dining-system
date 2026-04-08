@@ -89,4 +89,37 @@ router.get(
   }
 );
 
+// ─── PATCH /api/admin/vendors/:id/toggle-status ───────────────────────────────
+// Admin opens or closes a vendor
+router.patch(
+  '/vendors/:id/toggle-status',
+  authenticate,
+  roleGuard('admin'),
+  async (req, res) => {
+    try {
+      const { is_currently_open } = req.body;
+      if (typeof is_currently_open !== 'boolean') {
+        return res.status(400).json({ error: 'is_currently_open must be a boolean' });
+      }
+
+      const vendor = await Vendor.findByIdAndUpdate(
+        req.params.id,
+        { is_currently_open },
+        { new: true }
+      );
+
+      if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+
+      return res.status(200).json({
+        message: `Vendor ${is_currently_open ? 'opened' : 'closed'} successfully`,
+        vendor,
+      });
+    } catch (err) {
+      console.error('[Admin Toggle Vendor] Error:', err.message);
+      return res.status(500).json({ error: 'Failed to update vendor status' });
+    }
+  }
+);
+
 module.exports = router;
+

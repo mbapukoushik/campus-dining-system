@@ -1,11 +1,12 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { Utensils, LayoutDashboard, Calculator, LogOut } from 'lucide-react';
+import { Utensils, LayoutDashboard, Calculator, LogOut, ShieldCheck } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import StudentDashboard from './pages/StudentDashboard';
 import VendorProfile from './pages/VendorProfile';
 import BudgetPlanner from './pages/BudgetPlanner';
 import LoginPage from './pages/LoginPage';
+import AdminDashboard from './pages/AdminDashboard';
 
 // ─── Navigation Bar ────────────────────────────────────────────────────────
 const NavBar = () => {
@@ -22,18 +23,17 @@ const NavBar = () => {
       </Link>
 
       <div className="nav-links">
-        <Link
-          to="/"
-          className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
-        >
+        <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>
           <LayoutDashboard size={16} /> Dashboard
         </Link>
-        <Link
-          to="/planner"
-          className={`nav-link ${location.pathname === '/planner' ? 'active' : ''}`}
-        >
+        <Link to="/planner" className={`nav-link ${location.pathname === '/planner' ? 'active' : ''}`}>
           <Calculator size={16} /> Budget Planner
         </Link>
+        {user.role === 'admin' && (
+          <Link to="/admin" className={`nav-link ${location.pathname === '/admin' ? 'active' : ''}`}>
+            <ShieldCheck size={16} /> Admin
+          </Link>
+        )}
       </div>
 
       <div className="nav-right">
@@ -95,13 +95,15 @@ const AppRoutes = () => {
           path="/"
           element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>}
         />
+        <Route path="/vendors/:id" element={<ProtectedRoute><VendorProfile /></ProtectedRoute>} />
+        <Route path="/planner"     element={<ProtectedRoute><BudgetPlanner /></ProtectedRoute>} />
         <Route
-          path="/vendors/:id"
-          element={<ProtectedRoute><VendorProfile /></ProtectedRoute>}
-        />
-        <Route
-          path="/planner"
-          element={<ProtectedRoute><BudgetPlanner /></ProtectedRoute>}
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              {user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/" replace />}
+            </ProtectedRoute>
+          }
         />
         {/* Catch-all: redirect unknown paths to home */}
         <Route path="*" element={<Navigate to="/" replace />} />

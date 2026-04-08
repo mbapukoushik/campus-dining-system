@@ -43,7 +43,7 @@ async function seed() {
 
     // ─── Students ─────────────────────────────────────────────────────────────
     const students = await Promise.all([
-      User.create({ _id: id(), email: 'bapukoushik_maddisotty@srmap.edu.in', role: 'student', is_verified: true }),
+      User.create({ _id: id(), email: 'bapukoushik_maddisetty@srmap.edu.in', role: 'admin', is_verified: true }),
       User.create({ _id: id(), email: 'ap22110010001@srmap.edu.in',           role: 'student', is_verified: true }),
       User.create({ _id: id(), email: 'ap22110010002@srmap.edu.in',           role: 'student', is_verified: true }),
       User.create({ _id: id(), email: 'ap22110010003@srmap.edu.in',           role: 'student', is_verified: true }),
