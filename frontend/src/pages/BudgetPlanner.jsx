@@ -1,135 +1,153 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Calculator, AlertTriangle, ChevronRight } from 'lucide-react';
+import { IndianRupee, Users, Utensils, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { calculateBudget } from '../services/api';
 
 const BudgetPlanner = () => {
-  const [budget, setBudget] = useState(200);
-  const [headcount, setHeadcount] = useState(1);
-  const [category, setCategory] = useState('All');
-  
-  const [results, setResults] = useState(null);
+  const [formData, setFormData] = useState({
+    budget: '',
+    headcount: '1',
+    category: '',
+    dietary_preference: ''
+  });
+  const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
 
-  const perPersonBudget = budget > 0 && headcount > 0 ? Math.floor(Number(budget) / Number(headcount)) : 0;
-
-  const submitPlanner = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-    setResults(null);
-    
+    setError(null);
     try {
-      // Fix: backend expects 'budget' (not 'total_budget') and 'headcount'
-      const payload = {
-        budget: Number(budget),
-        headcount: Number(headcount),
-        category: category !== 'All' ? category : undefined,
-      };
-      const res = await calculateBudget(payload);
-      setResults(res.data);
+      const res = await calculateBudget({
+        ...formData,
+        budget: parseInt(formData.budget),
+        headcount: parseInt(formData.headcount)
+      });
+      setResult(res.data);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to calculate budget');
+      setError(err.response?.data?.error || 'Failed to calculate recommendations');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="page-container" style={{ maxWidth: '800px' }}>
-      <h1 className="flex-row"><Calculator size={32} /> Smart Budget Planner</h1>
-      <p style={{ color: 'var(--text-secondary)' }}>Find the most affordable options across campus dining.</p>
-
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <form onSubmit={submitPlanner} className="flex-col">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div>
-              <label>Total Budget (₹)</label>
-              <input type="number" min="10" value={budget} onChange={e => setBudget(e.target.value)} required />
-            </div>
-            <div>
-              <label>Headcount</label>
-              <input type="number" min="1" max="20" value={headcount} onChange={e => setHeadcount(e.target.value)} required />
-            </div>
-          </div>
-
-          {/* Live per-person preview */}
-          {perPersonBudget > 0 && (
-            <p style={{ margin: 0, color: 'var(--accent-primary)', fontSize: '0.9rem' }}>
-              → ₹{perPersonBudget} per person
-            </p>
-          )}
-
-          <div>
-            <label>Category Filter (Optional)</label>
-            <select value={category} onChange={e => setCategory(e.target.value)}>
-              <option value="All">Any Category</option>
-              <option value="Meals">Meals</option>
-              <option value="Snacks">Snacks</option>
-              <option value="Beverages">Beverages</option>
-            </select>
-          </div>
-          <button type="submit" disabled={loading} style={{ marginTop: '1rem' }}>
-            {loading ? 'Crunching Numbers...' : 'Find Recommendations'}
-          </button>
-        </form>
-        {error && <p style={{ color: 'var(--danger)', marginTop: '1rem' }}>{error}</p>}
+    <div className="page-container">
+      <div className="page-header">
+        <h1>Smart Event Budget Planner</h1>
+        <p>Algorithm-driven meal planning for campus events and groups</p>
       </div>
 
-      {results && (
-        <div className="flex-col">
-          {/* Warning Banner — shown when cheapest item > per-person budget */}
-          {results.max_spend_warning && (
-            <div className="card flex-row" style={{ background: 'rgba(245, 158, 11, 0.1)', borderColor: 'var(--warning)', color: 'var(--warning)', border: '1px solid' }}>
-              <AlertTriangle size={24} style={{ flexShrink: 0 }} />
-              <div>
-                <strong>Budget Warning!</strong>
-                <p style={{ margin: 0, fontSize: '0.9rem' }}>
-                  The cheapest available item exceeds your per-person budget of ₹{results.meta?.per_person_budget}.
-                  Showing closest matches anyway.
-                </p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '2.5rem' }}>
+        <div>
+          <form onSubmit={handleSubmit} className="card flex-col">
+            <h3 className="section-label">Planner Settings</h3>
+            
+            <div>
+              <label>Total Budget (₹)</label>
+              <div style={{ position: 'relative' }}>
+                <IndianRupee size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+                <input 
+                  type="number" 
+                  style={{ paddingLeft: '2.5rem' }}
+                  placeholder="e.g. 500" 
+                  value={formData.budget}
+                  onChange={e => setFormData({...formData, budget: e.target.value})}
+                  required
+                />
               </div>
             </div>
-          )}
 
-          <h2>
-            Top Recommendations
-            {results.meta && (
-              <span style={{ fontSize: '1rem', fontWeight: 400, color: 'var(--text-secondary)', marginLeft: '1rem' }}>
-                ₹{results.meta.budget_submitted} total · {results.meta.headcount} people · ₹{results.meta.per_person_budget}/person
-              </span>
-            )}
-          </h2>
+            <div>
+              <label>Headcount</label>
+              <div style={{ position: 'relative' }}>
+                <Users size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+                <input 
+                  type="number" 
+                  style={{ paddingLeft: '2.5rem' }}
+                  value={formData.headcount}
+                  onChange={e => setFormData({...formData, headcount: e.target.value})}
+                  min="1"
+                  required
+                />
+              </div>
+            </div>
 
-          {(!results.recommendations || results.recommendations.length === 0) && (
-            <p style={{ color: 'var(--text-secondary)' }}>
-              {results.message || 'No affordable options found for your budget.'}
-            </p>
-          )}
-          
-          <div className="flex-col">
-            {results.recommendations?.map((rec, i) => (
-              <Link to={`/vendors/${rec.vendor_id}`} key={i} className="card flex-row" style={{ justifyContent: 'space-between', textDecoration: 'none' }}>
-                <div>
-                  <h3 style={{ margin: '0 0 0.25rem 0' }}>{rec.stall_name}</h3>
-                  <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-                    Best pick: <strong>{rec.item_name}</strong> · {rec.category}
-                  </p>
-                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    {rec.location_tag} · {rec.is_currently_open ? '🟢 Open' : '🔴 Closed'}
-                  </p>
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div className="badge badge-success" style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>₹{rec.price}/person</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>₹{rec.budget_remaining} remaining</div>
-                </div>
-                <ChevronRight size={24} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
-              </Link>
-            ))}
-          </div>
+            <div>
+              <label>Category</label>
+              <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+                <option value="">All Categories</option>
+                <option value="Main Course">Main Course</option>
+                <option value="Fast Food">Fast Food</option>
+                <option value="Supper">Supper</option>
+                <option value="Snacks">Snacks</option>
+                <option value="Beverages">Beverages</option>
+              </select>
+            </div>
+
+            <button type="submit" disabled={loading}>
+              {loading ? <div className="spinner"></div> : <><Sparkles size={18} /> Generate Plan</>}
+            </button>
+
+            {error && <div className="alert alert-error">{error}</div>}
+          </form>
         </div>
-      )}
+
+        <div>
+          {result ? (
+            <div className="flex-col">
+              <div className={`alert ${result.recommendation === 'Highly Recommended' ? 'alert-success' : 'alert-info'}`}>
+                {result.recommendation === 'Highly Recommended' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '1rem' }}>{result.recommendation}</div>
+                  <div style={{ fontSize: '0.85rem' }}>
+                    Per person budget: ₹{result.per_person_budget} | 
+                    Median price for category: ₹{result.meta.median_price}
+                  </div>
+                </div>
+              </div>
+
+              {result.max_spend_warning && (
+                <div className="alert alert-warning">
+                  <AlertCircle size={20} />
+                  <div>
+                    <strong>Warning: High Spend Required</strong>
+                    <p style={{ fontSize: '0.85rem' }}>The cheapest items in this category exceed your per-person budget.</p>
+                  </div>
+                </div>
+              )}
+
+              <h3 className="section-label">Top Recommendation</h3>
+              {result.recommendations.length > 0 ? (
+                result.recommendations.map((rec, idx) => (
+                  <div key={idx} className="card card-hover flex-col" style={{ borderLeft: idx === 0 ? '4px solid var(--accent)' : '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <h3 style={{ fontSize: '1.25rem' }}>{rec.item_name}</h3>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>from <strong>{rec.stall_name}</strong> • {rec.location_tag}</p>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--accent)' }}>₹{rec.price}</div>
+                        <div className="tag" style={{ marginTop: '0.25rem' }}>₹{rec.budget_remaining} left p.p.</div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-state card">
+                  <Utensils className="empty-state-icon" />
+                  <p>No affordable options found for this budget.</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="empty-state card" style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Utensils className="empty-state-icon" />
+              <p>Enter your budget settings to see algorithm-backed dining recommendations.</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

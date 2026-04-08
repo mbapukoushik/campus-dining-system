@@ -128,4 +128,17 @@ router.post('/logout', (req, res) => {
   return res.status(200).json({ message: 'Logged out successfully' });
 });
 
+// ─── GET /api/auth/me ─────────────────────────────────────────────────────────
+// Returns current user info from JWT cookie
+const authenticate = require('../middleware/authenticate');
+router.get('/me', authenticate, (req, res) => {
+  return res.status(200).json({
+    user: {
+      email: req.user.email,
+      role: req.user.role,
+      is_verified: req.user.is_verified,
+    }
+  });
+});
+
 module.exports = router;

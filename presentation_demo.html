@@ -14,6 +14,8 @@
       --text-muted: #64748b;
       --border: #e2e8f0;
       --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
       --google-blue: #4285F4;
     }
 
@@ -49,12 +51,23 @@
       border-radius: 16px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.05);
       text-align: center;
-      max-width: 400px;
+      max-width: 450px;
       width: 100%;
     }
 
     .login-card h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-    .login-card p { color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; }
+    .login-card p { color: var(--text-muted); margin-bottom: 1rem; font-size: 0.95rem; }
+    
+    .domain-lock {
+      display: inline-block;
+      background: #fee2e2;
+      color: #b91c1c;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 2rem;
+    }
 
     .google-btn {
       display: flex;
@@ -86,37 +99,66 @@
 
     .user-profile { display: flex; align-items: center; gap: 0.5rem; font-weight: 500; }
     .avatar { width: 32px; height: 32px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .role-badge { background: #e0e7ff; color: #3730a3; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; margin-right: 0.5rem;}
 
     .dashboard-container {
       display: grid;
-      grid-template-columns: 300px 1fr;
+      grid-template-columns: 320px 1fr;
       gap: 2rem;
       padding: 2rem;
-      max-width: 1400px;
+      max-width: 1500px;
       margin: 0 auto;
       width: 100%;
     }
 
-    /* Sidebar / Budget Tool */
-    .sidebar {
+    /* Sidebar Components */
+    .sidebar-widget {
       background: var(--surface);
       border-radius: 12px;
       padding: 1.5rem;
       border: 1px solid var(--border);
-      height: fit-content;
+      margin-bottom: 1.5rem;
     }
 
-    .form-group { margin-bottom: 1.25rem; }
-    label { display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem; }
-    input, select { width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 6px; }
+    .widget-header {
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.85rem; }
+    input[type="number"], input[type="text"], select { width: 100%; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem;}
+    
+    .checkbox-group {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      background: #fff1f2;
+      padding: 0.75rem;
+      border-radius: 6px;
+      border: 1px solid #fecdd3;
+      margin-top: 1rem;
+    }
+    .checkbox-group input { margin-top: 0.2rem; }
+    .checkbox-group label { margin: 0; color: #be123c; font-size: 0.8rem; }
+
     .btn { background: var(--primary); color: white; border: none; padding: 0.75rem; border-radius: 6px; width: 100%; cursor: pointer; font-weight: 600; }
+    .btn-secondary { background: var(--text-muted); }
 
     /* Main Content / Vendors */
-    .main-content h2 { margin-bottom: 1.5rem; font-size: 1.5rem; }
-    
+    .feature-tags { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .feature-tag { padding: 0.4rem 0.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); cursor: pointer;}
+    .feature-tag.active { background: var(--primary); color: white; border-color: var(--primary); }
+
     .vendor-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 1.5rem;
     }
 
@@ -126,6 +168,7 @@
       border: 1px solid var(--border);
       overflow: hidden;
       transition: transform 0.2s, opacity 0.3s;
+      position: relative;
     }
 
     .vendor-img {
@@ -134,21 +177,67 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2rem;
+      font-size: 2.5rem;
+      position: relative;
+    }
+
+    .open-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255,255,255,0.9);
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--success);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .vendor-info { padding: 1.25rem; }
     .vendor-info h3 { margin-bottom: 0.25rem; }
     .vendor-info p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem; }
     
+    .meta-metrics {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px dashed var(--border);
+    }
+
+    .wait-time {
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    
+    .wait-time.confirmed { color: var(--warning); font-weight: 600; }
+    .wait-time.unconfirmed { color: var(--text-muted); font-style: italic; }
+
     .price-tag {
       display: inline-block;
-      background: var(--bg-color);
+      background: #f1f5f9;
       padding: 0.25rem 0.5rem;
       border-radius: 4px;
       font-weight: 600;
       font-size: 0.85rem;
       color: var(--primary);
+    }
+
+    /* Anomaly Tripwire State */
+    .tripwire-banner {
+      background: #fee2e2;
+      color: #b91c1c;
+      padding: 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-top: 1px solid #fecdd3;
     }
 
     /* States */
@@ -164,20 +253,24 @@
     <div class="login-card">
       <div style="font-size: 3rem; margin-bottom: 1rem;">🥗</div>
       <h1>Campus Dining System</h1>
-      <p>Secure portal for students and faculty</p>
+      <p>Role-Based Authentication Gateway</p>
       
+      <div class="domain-lock">🔒 Restricted to @srmap.edu.in accounts only</div>
+
       <button class="google-btn" onclick="simulateLogin()">
         <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-        Sign in with Google
+        Sign in as Verified Student
       </button>
+      
+      <p style="margin-top: 1.5rem; font-size: 0.85rem; color: #94a3b8; cursor: pointer;">Continue as Guest (Read-Only)</p>
     </div>
   </div>
 
   <div id="app-view" class="view">
     <header>
-      <div style="font-weight: bold; color: var(--primary); font-size: 1.2rem;">🥗 Campus Dining</div>
+      <div style="font-weight: bold; color: var(--primary); font-size: 1.2rem;">🥗 Campus Dining Console</div>
       <div class="user-profile">
-        <span>Student User</span>
+        <span class="role-badge">Verified Student</span>
         <div class="avatar">S</div>
       </div>
     </header>
@@ -185,64 +278,153 @@
     <div class="dashboard-container">
       
       <aside class="sidebar">
-        <h3 style="margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Smart Budget Planner</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Enter your group details to filter affordable dining options.</p>
-        
-        <form id="budget-form">
-          <div class="form-group">
-            <label>Total Budget (₹)</label>
-            <input type="number" id="budget" placeholder="e.g. 800" required>
-          </div>
-          <div class="form-group">
-            <label>Headcount</label>
-            <input type="number" id="headcount" placeholder="e.g. 4" required>
-          </div>
-          <button type="submit" class="btn" id="find-food-btn">Find Food</button>
-        </form>
+        <!-- Budget Planner Widget -->
+        <div class="sidebar-widget">
+          <div class="widget-header">Smart Budget Planner</div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Filter vendors by dividing budget among your group.</p>
+          
+          <form id="budget-form">
+            <div class="form-group">
+              <label>Total Budget (₹)</label>
+              <input type="number" id="budget" placeholder="e.g. 500" required>
+            </div>
+            <div class="form-group">
+              <label>Headcount</label>
+              <input type="number" id="headcount" placeholder="e.g. 4" required>
+            </div>
+            <button type="submit" class="btn" id="find-food-btn">Run Affordability Math</button>
+          </form>
 
-        <div id="budget-result" style="margin-top: 1.5rem; padding: 1rem; background: #f0fdf4; border: 1px solid var(--success); border-radius: 6px; display: none;">
-          <p style="font-size: 0.85rem; color: #065f46; margin-bottom: 0.25rem;">Calculated limit:</p>
-          <div style="font-size: 1.5rem; font-weight: bold; color: var(--success);" id="per-person-display">₹0 / person</div>
+          <div id="budget-result" style="margin-top: 1rem; padding: 0.75rem; background: #f0fdf4; border: 1px solid var(--success); border-radius: 6px; display: none;">
+            <p style="font-size: 0.75rem; color: #065f46; margin-bottom: 0.25rem;">Effective limit:</p>
+            <div style="font-size: 1.25rem; font-weight: bold; color: var(--success);" id="per-person-display">₹0 / person</div>
+          </div>
+          
+          <div id="budget-warning" style="margin-top: 1rem; padding: 0.75rem; background: #fffbeb; border: 1px solid #f59e0b; border-radius: 6px; display: none;">
+            <p style="font-size: 0.75rem; color: #b45309; margin-bottom: 0;">⚠️ <strong>max_spend_warning:</strong> Budget too low for campus menus.</p>
+          </div>
+        </div>
+
+        <!-- Submit Review Widget -->
+        <div class="sidebar-widget">
+          <div class="widget-header">Submit Review</div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Verified Students only. Guest comments hidden.</p>
+          
+          <div class="form-group">
+            <select>
+              <option>Campus Deli</option>
+              <option>Spice Route Canteen</option>
+              <option>Quick Bites Kiosk</option>
+            </select>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <div class="form-group">
+              <label>Taste (1-5)</label>
+              <input type="number" min="1" max="5" placeholder="5">
+            </div>
+            <div class="form-group">
+              <label>Value (1-5)</label>
+              <input type="number" min="1" max="5" placeholder="4">
+            </div>
+          </div>
+          <div class="checkbox-group">
+            <input type="checkbox" id="health-check">
+            <label for="health-check">Flag Health/Safety Concern (Routes directly to Support; hidden from public)</label>
+          </div>
+          <button type="button" class="btn btn-secondary" style="margin-top: 1rem;">Post Review (Limit 2/hr)</button>
         </div>
       </aside>
 
       <main class="main-content">
-        <h2>Available Vendors</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2>Live Campus Vendors</h2>
+        </div>
+        
+        <div class="feature-tags">
+          <div class="feature-tag active">All Open Vendors</div>
+          <div class="feature-tag">Meals</div>
+          <div class="feature-tag">Snacks</div>
+        </div>
+
         <div class="vendor-grid" id="vendors">
           
-          <div class="vendor-card" data-cost="150">
-            <div class="vendor-img">🥪</div>
+          <!-- Vendor 1 -->
+          <div class="vendor-card" data-cost="150" id="vendor-deli">
+            <div class="vendor-img">
+              🥪
+              <div class="open-badge">🟢 Open Now</div>
+            </div>
             <div class="vendor-info">
               <h3>Campus Deli</h3>
               <p>Sandwiches, Wraps, and Coffee</p>
-              <div class="price-tag">Meals from ₹150</div>
+              
+              <div class="meta-metrics">
+                <div class="price-tag">Cheapest: ₹150</div>
+                <div class="wait-time confirmed">
+                  ⏳ 12m avg (Confirmed)
+                </div>
+              </div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">⭐️ 4.8 (120 reviews)</div>
             </div>
           </div>
 
-          <div class="vendor-card" data-cost="250">
-            <div class="vendor-img">🍛</div>
+          <!-- Vendor 2 -->
+          <div class="vendor-card" data-cost="250" id="vendor-spice">
+            <div class="vendor-img">
+              🍛
+              <div class="open-badge">🟢 Open Now</div>
+            </div>
             <div class="vendor-info">
               <h3>Spice Route Canteen</h3>
               <p>Full Indian Thalis & Curries</p>
-              <div class="price-tag">Meals from ₹250</div>
+              
+              <div class="meta-metrics">
+                <div class="price-tag">Cheapest: ₹250</div>
+                <div class="wait-time unconfirmed" title="Quorum < 3 reports">
+                  ⏳ Unconfirmed (2 reports)
+                </div>
+              </div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">⭐️ 4.2 (85 reviews)</div>
             </div>
           </div>
 
-          <div class="vendor-card" data-cost="80">
-            <div class="vendor-img">🥟</div>
+          <!-- Vendor 3 -->
+          <div class="vendor-card" data-cost="80" id="vendor-bites">
+            <div class="vendor-img">
+              🥟
+              <div class="open-badge">🟢 Open Now</div>
+            </div>
             <div class="vendor-info">
               <h3>Quick Bites Kiosk</h3>
               <p>Momos, Samosas, and Chai</p>
-              <div class="price-tag">Meals from ₹80</div>
+              
+              <div class="meta-metrics">
+                <div class="price-tag">Cheapest: ₹80</div>
+                <div class="wait-time confirmed">
+                  ⏳ 5m avg (Confirmed)
+                </div>
+              </div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">⭐️ 4.5 (310 reviews)</div>
             </div>
           </div>
 
-          <div class="vendor-card" data-cost="350">
-            <div class="vendor-img">🍕</div>
+          <!-- Vendor 4 (FROZEN STATE) -->
+          <div class="vendor-card" data-cost="350" style="opacity: 0.8; filter: grayscale(20%);">
+            <div class="vendor-img">
+              🍕
+              <div class="open-badge" style="color: #64748b;">🔴 Auto-Closed</div>
+            </div>
             <div class="vendor-info">
               <h3>Student Union Pizzeria</h3>
               <p>Wood-fired Pizzas & Pastas</p>
-              <div class="price-tag">Meals from ₹350</div>
+              
+              <div class="meta-metrics">
+                <div class="price-tag" style="background:#e2e8f0; color:#64748b;">Cheapest: ₹350</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">⭐️ 1.2 (Rapid drop)</div>
+              </div>
+            </div>
+            <div class="tripwire-banner">
+              🔒 423 Locked: Reviews Paused (Anomaly Tripwire Threshold Reached)
             </div>
           </div>
 
@@ -256,7 +438,7 @@
     // 1. Handle Google Login Simulation
     function simulateLogin() {
       const btn = document.querySelector('.google-btn');
-      btn.innerHTML = 'Authenticating...';
+      btn.innerHTML = 'Verifying Domain...';
       
       setTimeout(() => {
         document.getElementById('login-view').classList.remove('active');
@@ -271,25 +453,37 @@
       const budget = parseFloat(document.getElementById('budget').value);
       const headcount = parseFloat(document.getElementById('headcount').value);
       const perPerson = Math.floor(budget / headcount);
+      
+      const resultDiv = document.getElementById('budget-result');
+      const warningDiv = document.getElementById('budget-warning');
 
-      // Show the result in the sidebar
-      document.getElementById('budget-result').style.display = 'block';
+      // TDD Logic: absolute cheapest item in system is 80
+      if (perPerson < 80) {
+        // Trigger max_spend_warning
+        resultDiv.style.display = 'none';
+        warningDiv.style.display = 'block';
+        
+        document.querySelectorAll('.vendor-card').forEach(c => c.classList.add('dimmed'));
+        return;
+      }
+
+      // Show success result
+      warningDiv.style.display = 'none';
+      resultDiv.style.display = 'block';
       document.getElementById('per-person-display').innerText = `₹${perPerson} / person`;
 
-      // Filter the vendors based on the calculated budget
+      // Filter the vendors based on the calculated budget (50% rule simulation)
       const vendors = document.querySelectorAll('.vendor-card');
       
       vendors.forEach(card => {
         const cost = parseFloat(card.getAttribute('data-cost'));
+        if (!cost) return; // Skip closed
         
-        // Reset classes
         card.classList.remove('dimmed', 'highlighted');
 
         if (cost <= perPerson) {
-          // They can afford it!
           card.classList.add('highlighted');
         } else {
-          // Too expensive
           card.classList.add('dimmed');
         }
       });

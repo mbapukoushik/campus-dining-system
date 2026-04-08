@@ -38,6 +38,7 @@ const menuRouter    = require('./routes/menu');
 const reviewsRouter = require('./routes/reviews');
 const waitTimesRouter = require('./routes/waitTimes');
 const plannerRouter = require('./routes/planner');
+const adminRouter   = require('./routes/admin');
 const authenticate  = require('./middleware/authenticate');
 
 const app = express();
@@ -110,6 +111,9 @@ app.use('/api/vendors/:id/wait-time', waitTimesRouter);
 
 // Budget Planner (TDD §5.4 / §2.2) — POST: JWT required; Affordability Algorithm v2
 app.use('/api/planner', plannerRouter);
+
+// Admin Operations (TDD §5.7) — Admin role + JWT
+app.use('/api/admin', adminRouter);
 
 // ─── 7. /healthz Endpoint (TDD §6.5 / §7.4) ──────────────────────────────────
 //

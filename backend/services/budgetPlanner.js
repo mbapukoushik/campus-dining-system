@@ -1,143 +1,121 @@
 'use strict';
 
 /**
- * services/budgetPlanner.js
+ * services/budgetPlanner.js — Affordability Algorithm v2 (TDD §2.2)
  *
- * Affordability Algorithm v2 (TDD §2.2 / §5.4)
+ * Algorithm (exact as specified):
+ *   per_person_budget = total_budget / headcount
+ *   items_in_category = Menu_Items where category == input.category AND is_sold_out == false
+ *   items_within_budget = items_in_category where price <= per_person_budget
+ *   median_price = median(items_in_category.map(i => i.price))
  *
- * Algorithm Steps:
- *  1. Accept: budget (integer ₹), headcount (integer ≥1), dietary_preference (optional), category (optional)
- *  2. Compute perPersonBudget = Math.floor(budget / headcount)
- *  3. Fetch all non-sold-out items from MongoDB (exclude is_sold_out: true)
- *  4. Apply dietary_preference filter if provided
- *  5. Apply category filter if provided
- *  6. Filter items where price <= perPersonBudget
- *  7. Sort by price ascending (best-value-first)
- *  8. Group by vendor_id → pick the cheapest item per vendor
- *  9. Return max 3 recommendations with enriched vendor data
- * 10. Inject max_spend_warning: true if the absolute cheapest item (pre-filter)
- *     costs MORE than perPersonBudget (i.e. no item is affordable per-person)
+ *   IF (items_within_budget.length / items_in_category.length >= 0.50)
+ *      AND (median_price <= per_person_budget)
+ *   THEN recommendation = 'Highly Recommended'
+ *   ELSE recommendation = 'Some Options Available'
  *
- * TDD §2.2 Anti-stuffing rule:
- *   - Max 3 recommendations returned total
- *   - budget_remaining = perPersonBudget - price (per recommendation)
- *   - If 0 items satisfy constraints → return { recommendations: [], message: 'No items within budget' }
+ *   IF (MIN(items_in_category) > per_person_budget)
+ *   THEN max_spend_warning = true
  */
 
 const MenuItem = require('../models/MenuItem');
 const Vendor = require('../models/Vendor');
 
-/**
- * buildRecommendations
- *
- * @param {Object} params
- * @param {number}  params.budget              - Total budget in ₹ (positive integer)
- * @param {number} [params.headcount]          - Number of people (default: 1)
- * @param {string} [params.dietary_preference] - One of: 'veg', 'non-veg', 'vegan', 'jain'
- * @param {string} [params.category]           - One of the MENU_CATEGORIES enum values
- * @returns {Promise<{recommendations: Array, meta: Object, max_spend_warning?: boolean}>}
- */
+function median(arr) {
+  if (!arr.length) return 0;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0
+    ? sorted[mid]
+    : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
 async function buildRecommendations({ budget, headcount = 1, dietary_preference, category }) {
-  // ─── Step 1: Validate inputs ──────────────────────────────────────────────
-  if (!Number.isInteger(budget) || budget <= 0) {
+  if (!Number.isInteger(budget) || budget <= 0)
     throw Object.assign(new Error('budget must be a positive integer'), { status: 400 });
-  }
-  if (!Number.isInteger(headcount) || headcount < 1) {
+  if (!Number.isInteger(headcount) || headcount < 1)
     throw Object.assign(new Error('headcount must be a positive integer'), { status: 400 });
-  }
 
-  // ─── Step 2: Per-person budget ────────────────────────────────────────────
-  const perPersonBudget = Math.floor(budget / headcount);
+  const per_person_budget = budget / headcount;
 
-  // ─── Step 3: Build query — exclude sold-out items ────────────────────────
+  // Fetch items_in_category (non-sold-out, filtered by category + dietary)
   const baseQuery = { is_sold_out: false };
+  if (category) baseQuery.category = category;
+  if (dietary_preference) baseQuery.dietary_tag = dietary_preference;
 
-  // ─── Step 4: Dietary preference filter ───────────────────────────────────
-  if (dietary_preference) {
-    baseQuery.dietary_tag = dietary_preference;
+  const items_in_category = await MenuItem.find(baseQuery).lean();
+
+  // items_within_budget
+  const items_within_budget = items_in_category.filter(i => i.price <= per_person_budget);
+
+  // Affordability calculation
+  const prices = items_in_category.map(i => i.price);
+  const median_price = median(prices);
+  const min_price = prices.length ? Math.min(...prices) : Infinity;
+
+  const max_spend_warning = min_price > per_person_budget;
+
+  let recommendation = 'Some Options Available';
+  if (items_in_category.length > 0) {
+    const ratio = items_within_budget.length / items_in_category.length;
+    if (ratio >= 0.50 && median_price <= per_person_budget) {
+      recommendation = 'Highly Recommended';
+    }
   }
 
-  // ─── Step 5: Category filter ──────────────────────────────────────────────
-  if (category) {
-    baseQuery.category = category;
-  }
+  // Build affordable_items (sorted by price, max 20)
+  const affordable_items = items_within_budget
+    .sort((a, b) => a.price - b.price)
+    .slice(0, 20);
 
-  // ─── max_spend_warning: find the cheapest item BEFORE applying budget cap ─
-  // If even the cheapest item > perPersonBudget, warn the user
-  const cheapestItem = await MenuItem.findOne(baseQuery).sort({ price: 1 }).lean();
-  const max_spend_warning = cheapestItem ? cheapestItem.price > perPersonBudget : false;
-
-  // ─── Step 6: Fetch affordable items (price <= perPersonBudget) ───────────
-  const affordableQuery = { ...baseQuery, price: { $lte: perPersonBudget } };
-
-  const affordableItems = await MenuItem.find(affordableQuery)
-    .sort({ price: 1 })
-    .lean();
-
-  // ─── Step 7: Group by vendor — pick cheapest per vendor ──────────────────
+  // Enrich with vendor data (top 3 unique vendors)
   const vendorMap = new Map();
-  for (const item of affordableItems) {
+  for (const item of items_within_budget.sort((a, b) => a.price - b.price)) {
     if (!vendorMap.has(String(item.vendor_id))) {
       vendorMap.set(String(item.vendor_id), item);
     }
   }
 
-  if (vendorMap.size === 0) {
-    return {
-      recommendations: [],
-      max_spend_warning,
-      message: max_spend_warning
-        ? `No items within per-person budget of ₹${perPersonBudget}`
-        : 'No items within budget',
-      meta: {
-        budget_submitted: budget,
-        headcount,
-        per_person_budget: perPersonBudget,
-        dietary_preference: dietary_preference || null,
-        category: category || null,
-        total_results: 0,
-      },
-    };
-  }
-
-  // ─── Step 8: Build recommendations (max 3, TDD §2.2) ─────────────────────
-  const vendorIds = [...vendorMap.keys()];
-  const vendors = await Vendor.find({ _id: { $in: vendorIds } })
+  const topVendorIds = [...vendorMap.keys()].slice(0, 3);
+  const vendors = await Vendor.find({ _id: { $in: topVendorIds } })
     .select('stall_name location_tag is_currently_open')
     .lean();
   const vendorLookup = {};
-  vendors.forEach((v) => {
-    vendorLookup[String(v._id)] = v;
-  });
+  vendors.forEach(v => { vendorLookup[String(v._id)] = v; });
 
-  const recommendations = [];
-  for (const [vendorId, item] of vendorMap.entries()) {
-    if (recommendations.length >= 3) break;
-
-    recommendations.push({
+  const recommendations = topVendorIds.map(vendorId => {
+    const item = vendorMap.get(vendorId);
+    const v = vendorLookup[vendorId] || {};
+    return {
       vendor_id: vendorId,
-      stall_name: vendorLookup[vendorId]?.stall_name || 'Unknown',
-      location_tag: vendorLookup[vendorId]?.location_tag || '',
-      is_currently_open: vendorLookup[vendorId]?.is_currently_open ?? false,
+      stall_name: v.stall_name || 'Unknown',
+      location_tag: v.location_tag || '',
+      is_currently_open: v.is_currently_open ?? false,
       item_id: item._id,
       item_name: item.item_name,
       price: item.price,
       category: item.category,
       dietary_tag: item.dietary_tag || null,
-      budget_remaining: perPersonBudget - item.price,
-    });
-  }
+      budget_remaining: Math.floor(per_person_budget - item.price),
+    };
+  });
 
   return {
-    recommendations,
+    recommendation,
     max_spend_warning,
+    per_person_budget: Math.floor(per_person_budget),
+    affordable_items,
+    recommendations,
     meta: {
       budget_submitted: budget,
       headcount,
-      per_person_budget: perPersonBudget,
-      dietary_preference: dietary_preference || null,
+      per_person_budget: Math.floor(per_person_budget),
       category: category || null,
+      dietary_preference: dietary_preference || null,
       total_results: recommendations.length,
+      items_in_category: items_in_category.length,
+      items_within_budget: items_within_budget.length,
+      median_price: Math.round(median_price),
     },
   };
 }

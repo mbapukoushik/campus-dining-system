@@ -23,11 +23,9 @@ const { MENU_CATEGORIES } = require('../models/MenuItem');
 const { DIETARY_TAGS } = require('../models/MenuItem');
 
 // ─── POST /api/planner/recommend ─────────────────────────────────────────────
-// Authenticated: JWT + student/vendor/admin (any verified university user)
+// Public: Guest OK as per TDD §5.4
 router.post(
   '/recommend',
-  authenticate,
-  roleGuard('student', 'vendor', 'admin', 'support'),
   async (req, res) => {
     try {
       const { budget, headcount, dietary_preference, category } = req.body;

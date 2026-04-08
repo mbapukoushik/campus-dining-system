@@ -1,86 +1,115 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Clock, Info } from 'lucide-react';
-import { fetchMenu, reportWaitTime } from '../services/api';
+import { useParams } from 'react-router-dom';
+import { MapPin, Clock, Star, ChevronLeft, Info } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { fetchVendorById, fetchVendorMenu, fetchVendorReviews } from '../services/api';
 
 const VendorProfile = () => {
   const { id } = useParams();
+  const [vendor, setVendor] = useState(null);
   const [menu, setMenu] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [waitMinutes, setWaitMinutes] = useState(10);
-  const [reportStatus, setReportStatus] = useState('');
 
   useEffect(() => {
-    fetchMenu(id)
-      .then((res) => setMenu(res.data))
-      .catch((err) => console.error(err))
+    Promise.all([
+      fetchVendorById(id),
+      fetchVendorMenu(id),
+      fetchVendorReviews(id)
+    ]).then(([vRes, mRes, rRes]) => {
+      setVendor(vRes.data);
+      setMenu(mRes.data);
+      setReviews(rRes.data);
+    }).catch(err => console.error("Failed to load vendor profile", err))
       .finally(() => setLoading(false));
   }, [id]);
 
-  const handleReportWait = async (e) => {
-    e.preventDefault();
-    try {
-      await reportWaitTime(id, waitMinutes);
-      setReportStatus('Report submitted!');
-      setTimeout(() => setReportStatus(''), 3000);
-    } catch (error) {
-      setReportStatus('Failed to submit (Rate limit or error)');
-    }
-  };
-
-  if (loading) return <div className="page-container">Loading Menu...</div>;
+  if (loading) return <div className="loading-page"><div className="spinner"></div><p>Loading vendor details...</p></div>;
+  if (!vendor) return <div className="page-container"><p>Vendor not found.</p></div>;
 
   return (
     <div className="page-container">
-      <Link to="/" className="flex-row" style={{ marginBottom: '2rem', color: 'var(--text-secondary)' }}>
-        <ArrowLeft size={20} /> Back to Dashboard
+      <Link to="/" className="btn-ghost btn-sm" style={{ marginBottom: '1.5rem', display: 'inline-flex' }}>
+        <ChevronLeft size={16} /> Back to Dashboard
       </Link>
-      
-      <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-        {/* Left Col: Menu */}
-        <div style={{ flex: '1 1 600px' }}>
-          <h1>Menu Items</h1>
-          {menu.length === 0 && <p>No menu items available.</p>}
-          <div className="flex-col">
-            {menu.map((item) => (
-              <div key={item._id} className="card flex-row" style={{ justifyContent: 'space-between' }}>
-                <div>
-                  <h3 style={{ margin: '0 0 0.5rem 0' }}>{item.name}</h3>
-                  <div className="flex-row">
-                    <span className="badge badge-warning">₹{item.price}</span>
-                    <span className="badge" style={{ background: 'var(--bg-input)' }}>{item.category}</span>
-                    {item.dietary_tags?.map((d) => (
-                      <span key={d} className="badge badge-success" style={{ fontSize: '0.75rem' }}>{d}</span>
-                    ))}
-                  </div>
-                </div>
-                {item.is_sold_out && <span className="badge badge-danger">Sold Out</span>}
-              </div>
-            ))}
+
+      <div className="card flex-col" style={{ marginBottom: '2.5rem' }}>
+        <div className="flex-col" style={{ gap: '0.5rem' }}>
+          <div className="flex-row" style={{ justifyContent: 'space-between' }}>
+            <h1>{vendor.stall_name}</h1>
+            <span className={`badge ${vendor.is_currently_open && vendor.is_within_hours ? 'badge-green' : 'badge-red'}`}>
+              {vendor.is_currently_open && vendor.is_within_hours ? '● Open Now' : '○ Closed'}
+            </span>
+          </div>
+          <div className="flex-row" style={{ color: 'var(--text-tertiary)' }}>
+            <MapPin size={16} />
+            <span>{vendor.location_tag}</span>
           </div>
         </div>
 
-        {/* Right Col: Actions */}
-        <div style={{ flex: '1 1 300px' }}>
+        <div className="divider"></div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+          <div className="stat-card">
+            <div className="stat-num">{vendor.avg_rating || 'N/A'}</div>
+            <div className="stat-label">Avg Rating</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-num">{vendor.current_wait_time || 0}</div>
+            <div className="stat-label">Wait Time (m)</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-num">{menu.length}</div>
+            <div className="stat-label">Menu Items</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr', gap: '2.5rem' }}>
+        <div>
+          <h3 className="section-label">Menu Items</h3>
+          <div className="flex-col">
+            {menu.length === 0 ? (
+              <p className="empty-state">No menu items listed.</p>
+            ) : (
+              menu.map(item => (
+                <div key={item._id} className="card flex-row" style={{ justifyContent: 'space-between' }}>
+                  <div className="flex-col" style={{ gap: '0.25rem' }}>
+                    <div className="flex-row">
+                      <span style={{ fontWeight: 600 }}>{item.item_name}</span>
+                      {item.dietary_tag && (
+                        <span className={`badge btn-sm ${item.dietary_tag === 'veg' ? 'badge-green' : 'badge-red'}`} style={{ fontSize: '0.65rem' }}>
+                          {item.dietary_tag}
+                        </span>
+                      )}
+                    </div>
+                    <span className="tag">{item.category}</span>
+                  </div>
+                  <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--accent)' }}>₹{item.price}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="section-label">Recent Reviews</h3>
           <div className="card">
-            <h2 className="flex-row" style={{ marginTop: 0 }}><Clock size={24} /> Report Wait Time</h2>
-            <form onSubmit={handleReportWait} className="flex-col">
-              <label style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                Estimated Wait (minutes)
-              </label>
-              <input 
-                type="number" 
-                min="0" max="120"
-                value={waitMinutes}
-                onChange={(e) => setWaitMinutes(Number(e.target.value))}
-                required 
-              />
-              <button type="submit" style={{ width: '100%' }}>Submit Report</button>
-            </form>
-            {reportStatus && (
-              <div className="flex-row" style={{ marginTop: '1rem', color: 'var(--accent-primary)' }}>
-                <Info size={16} /> {reportStatus}
-              </div>
+            {reviews.length === 0 ? (
+              <p className="empty-state">No reviews yet.</p>
+            ) : (
+              reviews.map(review => (
+                <div key={review._id} className="review-item">
+                  <div className="flex-row" style={{ marginBottom: '0.5rem' }}>
+                    <div className="stars">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={12} className={i < review.rating ? 'star-filled' : 'star-empty'} fill={i < review.rating ? 'currentColor' : 'none'} />
+                      ))}
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '0.9rem' }}>{review.comment}</p>
+                </div>
+              ))
             )}
           </div>
         </div>

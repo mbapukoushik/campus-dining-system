@@ -10,7 +10,22 @@ export const fetchVendors = () => {
   return api.get('/api/vendors');
 };
 
-// fetchMenu(vendorId) -> GET /api/vendors/:id/menu
+// fetchVendorById(id) -> GET /api/vendors/:id
+export const fetchVendorById = (id) => {
+  return api.get(`/api/vendors/${id}`);
+};
+
+// fetchVendorMenu(vendorId) -> GET /api/vendors/:id/menu
+export const fetchVendorMenu = (vendorId) => {
+  return api.get(`/api/vendors/${vendorId}/menu`);
+};
+
+// fetchVendorReviews(vendorId) -> GET /api/vendors/:id/reviews
+export const fetchVendorReviews = (vendorId) => {
+  return api.get(`/api/vendors/${vendorId}/reviews`);
+};
+
+// fetchMenu(vendorId) -> GET /api/vendors/:id/menu  (alias kept for compatibility)
 export const fetchMenu = (vendorId) => {
   return api.get(`/api/vendors/${vendorId}/menu`);
 };
