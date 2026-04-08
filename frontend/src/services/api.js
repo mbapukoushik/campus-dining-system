@@ -40,4 +40,10 @@ export const reportWaitTime = (vendorId, minutes) => {
   return api.post(`/api/vendors/${vendorId}/wait-time`, { minutes });
 };
 
+// submitReview(vendorId, payload) -> POST /api/vendors/:id/reviews
+// payload: { taste_score, value_score, overall_score, comment_text }
+export const submitReview = (vendorId, payload) => {
+  return api.post(`/api/vendors/${vendorId}/reviews`, payload);
+};
+
 export default api;

@@ -2,182 +2,210 @@
 
 /**
  * backend/scripts/seeder.js
- * Populates the DB with realistic SRM University AP demo data.
- * Run: node backend/scripts/seeder.js
+ *
+ * Seeds the database with real restaurants near SRM University AP,
+ * Mangalagiri / Amaravati, Andhra Pradesh.
  */
 
-require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+require('dotenv').config();
+const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
-const connectDB = require('../config/db');
-const User = require('../models/User');
-const Vendor = require('../models/Vendor');
-const MenuItem = require('../models/MenuItem');
-const Review = require('../models/Review');
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
+const User     = require('../models/User');
+const Vendor   = require('../models/Vendor');
+const MenuItem = require('../models/MenuItem');
+const Review   = require('../models/Review');
+
 const id = () => uuidv4();
 
-const seedData = async () => {
+async function seed() {
   try {
-    await connectDB();
+    console.log('[Seeder] Connecting to MongoDB...');
+    await mongoose.connect(process.env.MONGO_URI, { maxPoolSize: 10 });
+    console.log('[Seeder] Connected. Clearing old data...');
 
-    console.log('[Seeder] Clearing existing data...');
-    await User.deleteMany({});
-    await Vendor.deleteMany({});
-    await MenuItem.deleteMany({});
-    await Review.deleteMany({});
-
-    // ─── Users ────────────────────────────────────────────────────────────────
-    console.log('[Seeder] Creating users...');
-
-    const admin = await User.create({
-      _id: id(), email: 'admin@srmap.edu.in', role: 'admin', is_verified: true,
-    });
-
-    const [vu1, vu2, vu3, vu4, vu5, vu6] = await Promise.all([
-      User.create({ _id: id(), email: 'greenbites@srmap.edu.in',    role: 'vendor', is_verified: true }),
-      User.create({ _id: id(), email: 'crunchy@srmap.edu.in',       role: 'vendor', is_verified: true }),
-      User.create({ _id: id(), email: 'spcanteen@srmap.edu.in',     role: 'vendor', is_verified: true }),
-      User.create({ _id: id(), email: 'mbacafe@srmap.edu.in',       role: 'vendor', is_verified: true }),
-      User.create({ _id: id(), email: 'expressbites@srmap.edu.in',  role: 'vendor', is_verified: true }),
-      User.create({ _id: id(), email: 'chaistop@srmap.edu.in',      role: 'vendor', is_verified: true }),
+    await Promise.all([
+      User.deleteMany({}),
+      Vendor.deleteMany({}),
+      MenuItem.deleteMany({}),
+      Review.deleteMany({}),
     ]);
 
-    const [s1, s2, s3, s4] = await Promise.all([
-      User.create({ _id: id(), email: 'student@srmap.edu.in',        role: 'student', is_verified: true }),
-      User.create({ _id: id(), email: 'ap22110010001@srmap.edu.in',  role: 'student', is_verified: true }),
-      User.create({ _id: id(), email: 'ap22110010002@srmap.edu.in',  role: 'student', is_verified: true }),
-      User.create({ _id: id(), email: 'ap22110010003@srmap.edu.in',  role: 'student', is_verified: true }),
+    // ─── Vendor Owners ───────────────────────────────────────────────────────
+    const owners = await Promise.all([
+      User.create({ _id: id(), email: 'srilakshmi.mourya@srmap.edu.in',   role: 'vendor', is_verified: true }),
+      User.create({ _id: id(), email: 'bismillah.biryani@srmap.edu.in',   role: 'vendor', is_verified: true }),
+      User.create({ _id: id(), email: 'mandakini.restaurant@srmap.edu.in',role: 'vendor', is_verified: true }),
+      User.create({ _id: id(), email: 'zamzam.restaurant@srmap.edu.in',   role: 'vendor', is_verified: true }),
+      User.create({ _id: id(), email: 'senapathi.hotel@srmap.edu.in',     role: 'vendor', is_verified: true }),
+      User.create({ _id: id(), email: 'prasad.fastfoods@srmap.edu.in',    role: 'vendor', is_verified: true }),
+    ]);
+
+    // ─── Students ─────────────────────────────────────────────────────────────
+    const students = await Promise.all([
+      User.create({ _id: id(), email: 'bapukoushik_maddisotty@srmap.edu.in', role: 'student', is_verified: true }),
+      User.create({ _id: id(), email: 'ap22110010001@srmap.edu.in',           role: 'student', is_verified: true }),
+      User.create({ _id: id(), email: 'ap22110010002@srmap.edu.in',           role: 'student', is_verified: true }),
+      User.create({ _id: id(), email: 'ap22110010003@srmap.edu.in',           role: 'student', is_verified: true }),
     ]);
 
     // ─── Vendors ──────────────────────────────────────────────────────────────
-    console.log('[Seeder] Creating vendors...');
+    const weekdays = [1, 2, 3, 4, 5].map(d => ({ day: d, open: '09:00', close: '22:00' }));
+    const allWeek  = [0, 1, 2, 3, 4, 5, 6].map(d => ({ day: d, open: '08:00', close: '23:00' }));
 
-    const weekdays = [1, 2, 3, 4, 5].map(day => ({ day, open: '08:00', close: '20:00' }));
-    const weekdaysLong = [1, 2, 3, 4, 5].map(day => ({ day, open: '07:30', close: '22:00' }));
-    const allDays = [1, 2, 3, 4, 5, 6, 7].map(day => ({ day, open: '09:00', close: '21:00' }));
+    const vendors = await Promise.all([
 
-    const [v1, v2, v3, v4, v5, v6] = await Promise.all([
+      // 1 ─ Sri Lakshmi Mourya Dhaba (Rating 4.1 in app)
       Vendor.create({
-        _id: id(), owner_id: vu1._id,
-        stall_name: 'Green Bites',
-        location_tag: 'Main Canteen — Ground Floor',
-        operating_hours: weekdays,
+        _id: id(), owner_id: owners[0]._id,
+        stall_name: 'Sri Lakshmi Mourya Dhaba',
+        location_tag: 'Near Donbasco School, Yerrabai Nagar',
+        operating_hours: allWeek,
         is_currently_open: true,
-        avg_rating: 4.5,
-        current_wait_time: 8,
-      }),
-      Vendor.create({
-        _id: id(), owner_id: vu2._id,
-        stall_name: 'Crunchy Corner',
-        location_tag: 'Food Court — Level 2',
-        operating_hours: weekdaysLong,
-        is_currently_open: true,
-        avg_rating: 4.2,
-        current_wait_time: 12,
-      }),
-      Vendor.create({
-        _id: id(), owner_id: vu3._id,
-        stall_name: 'SP Canteen',
-        location_tag: 'Science Block — Near Gate B',
-        operating_hours: weekdays,
-        is_currently_open: true,
-        avg_rating: 4.0,
-        current_wait_time: 5,
-      }),
-      Vendor.create({
-        _id: id(), owner_id: vu4._id,
-        stall_name: 'MBA Café',
-        location_tag: 'Management Block — 1st Floor',
-        operating_hours: weekdays,
-        is_currently_open: false,
-        avg_rating: 4.7,
-        current_wait_time: 3,
-      }),
-      Vendor.create({
-        _id: id(), owner_id: vu5._id,
-        stall_name: 'Express Bites',
-        location_tag: 'Engineering Block — Lobby',
-        operating_hours: weekdaysLong,
-        is_currently_open: true,
-        avg_rating: 3.9,
+        avg_rating: 4.1,
         current_wait_time: 15,
       }),
+
+      // 2 ─ Bismillah Biryani (Rating 4.2 in app)
       Vendor.create({
-        _id: id(), owner_id: vu6._id,
-        stall_name: 'The Chai Stop',
-        location_tag: 'Library — Ground Floor',
-        operating_hours: allDays,
+        _id: id(), owner_id: owners[1]._id,
+        stall_name: 'Bismillah Biryani',
+        location_tag: 'Opp Mandakini Bar, Mangalagiri',
+        operating_hours: allWeek,
         is_currently_open: true,
-        avg_rating: 4.8,
-        current_wait_time: 2,
+        avg_rating: 4.2,
+        current_wait_time: 20,
       }),
+
+      // 3 ─ Mandakini Restaurant (Rating 3.9 in app)
+      Vendor.create({
+        _id: id(), owner_id: owners[2]._id,
+        stall_name: 'Mandakini Restaurant',
+        location_tag: 'Gowtham Buddha Road, Mangalagiri',
+        operating_hours: weekdays,
+        is_currently_open: true,
+        avg_rating: 3.9,
+        current_wait_time: 25,
+      }),
+
+      // 4 ─ Zam Zam Family Restaurant (Rating 3.9 in app)
+      Vendor.create({
+        _id: id(), owner_id: owners[3]._id,
+        stall_name: 'Zam Zam Family Restaurant',
+        location_tag: 'Gowtham Buddha Road, Mangalagiri',
+        operating_hours: allWeek,
+        is_currently_open: true,
+        avg_rating: 3.9,
+        current_wait_time: 30,
+      }),
+
+      // 5 ─ Senapathi Military Hotel (Rating 3.8 in app)
+      Vendor.create({
+        _id: id(), owner_id: owners[4]._id,
+        stall_name: 'Senapathi Military Hotel',
+        location_tag: 'Guntur Highway, Chinakakani',
+        operating_hours: weekdays,
+        is_currently_open: true,
+        avg_rating: 3.8,
+        current_wait_time: 10,
+      }),
+
+      // 6 ─ Prasad Fast Foods & Biryanis (Rating 3.2 in app)
+      Vendor.create({
+        _id: id(), owner_id: owners[5]._id,
+        stall_name: 'Prasad Fast Foods & Biryanis',
+        location_tag: 'Near VJ College, Ganapathi Nagar',
+        operating_hours: weekdays,
+        is_currently_open: false,
+        avg_rating: 3.2,
+        current_wait_time: 35,
+      }),
+
     ]);
 
     // ─── Menu Items ───────────────────────────────────────────────────────────
-    console.log('[Seeder] Creating menu items...');
-
     await MenuItem.insertMany([
-      // Green Bites — v1
-      { _id: id(), vendor_id: v1._id, item_name: 'Veg Thali',            price: 80,  category: 'Main Course', dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v1._id, item_name: 'Paneer Butter Masala', price: 120, category: 'Main Course', dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v1._id, item_name: 'Dal Tadka',            price: 60,  category: 'Main Course', dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v1._id, item_name: 'Raita',                price: 25,  category: 'Snacks',      dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v1._id, item_name: 'Lassi',                price: 40,  category: 'Beverages',   dietary_tag: 'veg',     is_sold_out: false },
 
-      // Crunchy Corner — v2
-      { _id: id(), vendor_id: v2._id, item_name: 'Chicken Burger',       price: 150, category: 'Fast Food',   dietary_tag: 'non-veg', is_sold_out: false },
-      { _id: id(), vendor_id: v2._id, item_name: 'Veg Burger',           price: 90,  category: 'Fast Food',   dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v2._id, item_name: 'French Fries',         price: 60,  category: 'Snacks',      dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v2._id, item_name: 'Cold Coffee',          price: 70,  category: 'Beverages',   dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v2._id, item_name: 'Chicken Wrap',         price: 130, category: 'Fast Food',   dietary_tag: 'non-veg', is_sold_out: false },
+      // Sri Lakshmi Mourya Dhaba
+      { _id: id(), vendor_id: vendors[0]._id, item_name: 'Chicken Biryani (Full)',  price: 220, category: 'lunch',   dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[0]._id, item_name: 'Chicken Biryani (Half)',  price: 130, category: 'lunch',   dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[0]._id, item_name: 'Veg Biryani',             price: 120, category: 'lunch',   dietary_tag: 'veg',     is_sold_out: false },
+      { _id: id(), vendor_id: vendors[0]._id, item_name: 'Pulka (2 pcs)',            price: 40,  category: 'dinner',  dietary_tag: 'veg',     is_sold_out: false },
+      { _id: id(), vendor_id: vendors[0]._id, item_name: 'Mutton Curry',             price: 180, category: 'lunch',   dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[0]._id, item_name: 'Dal Fry + Rice',           price: 90,  category: 'lunch',   dietary_tag: 'veg',     is_sold_out: false },
 
-      // SP Canteen — v3
-      { _id: id(), vendor_id: v3._id, item_name: 'Chicken Biryani',      price: 140, category: 'Main Course', dietary_tag: 'non-veg', is_sold_out: false },
-      { _id: id(), vendor_id: v3._id, item_name: 'Veg Biryani',          price: 100, category: 'Main Course', dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v3._id, item_name: 'Samosa (2 pcs)',       price: 20,  category: 'Snacks',      dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v3._id, item_name: 'Buttermilk',           price: 15,  category: 'Beverages',   dietary_tag: 'veg',     is_sold_out: false },
+      // Bismillah Biryani
+      { _id: id(), vendor_id: vendors[1]._id, item_name: 'Special Chicken Biryani', price: 250, category: 'lunch',   dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[1]._id, item_name: 'Chicken Biryani',         price: 180, category: 'lunch',   dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[1]._id, item_name: 'Egg Biryani',             price: 120, category: 'lunch',   dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[1]._id, item_name: 'Veg Biryani',             price: 100, category: 'lunch',   dietary_tag: 'veg',     is_sold_out: false },
+      { _id: id(), vendor_id: vendors[1]._id, item_name: 'Chicken Pakodi',          price: 160, category: 'snacks',  dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[1]._id, item_name: 'Raitha',                  price: 30,  category: 'snacks',  dietary_tag: 'veg',     is_sold_out: false },
 
-      // MBA Café — v4
-      { _id: id(), vendor_id: v4._id, item_name: 'Grilled Sandwich',     price: 75,  category: 'Snacks',      dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v4._id, item_name: 'Cappuccino',           price: 80,  category: 'Beverages',   dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v4._id, item_name: 'Club Sandwich',        price: 110, category: 'Snacks',      dietary_tag: 'non-veg', is_sold_out: false },
-      { _id: id(), vendor_id: v4._id, item_name: 'Pasta Arabiata',       price: 130, category: 'Main Course', dietary_tag: 'veg',     is_sold_out: false },
+      // Mandakini Restaurant
+      { _id: id(), vendor_id: vendors[2]._id, item_name: 'Chicken Fried Rice',      price: 150, category: 'lunch',   dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[2]._id, item_name: 'Egg Fried Rice',          price: 110, category: 'lunch',   dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[2]._id, item_name: 'Veg Fried Rice',          price: 90,  category: 'lunch',   dietary_tag: 'veg',     is_sold_out: false },
+      { _id: id(), vendor_id: vendors[2]._id, item_name: 'Chicken Manchuria',       price: 180, category: 'snacks',  dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[2]._id, item_name: 'Butter Naan',             price: 40,  category: 'dinner',  dietary_tag: 'veg',     is_sold_out: false },
+      { _id: id(), vendor_id: vendors[2]._id, item_name: 'Sweet Lassi',             price: 50,  category: 'beverages', dietary_tag: 'veg',   is_sold_out: false },
 
-      // Express Bites — v5
-      { _id: id(), vendor_id: v5._id, item_name: 'Egg Roll',             price: 50,  category: 'Fast Food',   dietary_tag: 'non-veg', is_sold_out: false },
-      { _id: id(), vendor_id: v5._id, item_name: 'Pav Bhaji',            price: 70,  category: 'Supper',      dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v5._id, item_name: 'Noodles',              price: 65,  category: 'Supper',      dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v5._id, item_name: 'Energy Drink',         price: 55,  category: 'Beverages',   dietary_tag: 'veg',     is_sold_out: false },
+      // Zam Zam Family Restaurant
+      { _id: id(), vendor_id: vendors[3]._id, item_name: 'Mutton Mandi',            price: 350, category: 'lunch',   dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[3]._id, item_name: 'Chicken Mandi',           price: 280, category: 'lunch',   dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[3]._id, item_name: 'Chicken Biryani',         price: 200, category: 'lunch',   dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[3]._id, item_name: 'Roti',                    price: 20,  category: 'dinner',  dietary_tag: 'veg',     is_sold_out: false },
+      { _id: id(), vendor_id: vendors[3]._id, item_name: 'Chicken BBQ',             price: 220, category: 'snacks',  dietary_tag: 'non-veg', is_sold_out: false },
 
-      // The Chai Stop — v6
-      { _id: id(), vendor_id: v6._id, item_name: 'Masala Chai',          price: 15,  category: 'Beverages',   dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v6._id, item_name: 'Filter Coffee',        price: 20,  category: 'Beverages',   dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v6._id, item_name: 'Biscuits (Packet)',     price: 10,  category: 'Snacks',      dietary_tag: 'veg',     is_sold_out: false },
-      { _id: id(), vendor_id: v6._id, item_name: 'Boiled Eggs (2 pcs)',  price: 30,  category: 'Snacks',      dietary_tag: 'non-veg', is_sold_out: false },
+      // Senapathi Military Hotel
+      { _id: id(), vendor_id: vendors[4]._id, item_name: 'Meals (Full)',             price: 120, category: 'lunch',   dietary_tag: 'veg',     is_sold_out: false },
+      { _id: id(), vendor_id: vendors[4]._id, item_name: 'Chicken Biryani',         price: 170, category: 'lunch',   dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[4]._id, item_name: 'Tandoori Chicken (Half)', price: 220, category: 'snacks',  dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[4]._id, item_name: 'Pulka + Curry',           price: 80,  category: 'dinner',  dietary_tag: 'veg',     is_sold_out: false },
+
+      // Prasad Fast Foods & Biryanis
+      { _id: id(), vendor_id: vendors[5]._id, item_name: 'Special Biryani',         price: 180, category: 'lunch',   dietary_tag: 'non-veg', is_sold_out: true  },
+      { _id: id(), vendor_id: vendors[5]._id, item_name: 'Noodles (Veg)',           price: 90,  category: 'dinner',  dietary_tag: 'veg',     is_sold_out: false },
+      { _id: id(), vendor_id: vendors[5]._id, item_name: 'Chicken Noodles',         price: 130, category: 'dinner',  dietary_tag: 'non-veg', is_sold_out: false },
+      { _id: id(), vendor_id: vendors[5]._id, item_name: 'Veg Manchuria',           price: 110, category: 'snacks',  dietary_tag: 'veg',     is_sold_out: false },
+
     ]);
 
     // ─── Reviews ──────────────────────────────────────────────────────────────
-    console.log('[Seeder] Creating reviews...');
-
     await Review.insertMany([
-      { _id: id(), vendor_id: v1._id, user_id: s1._id, rating: 5, comment: 'Fresh food every day — the veg thali is a steal at ₹80!' },
-      { _id: id(), vendor_id: v1._id, user_id: s2._id, rating: 4, comment: 'Paneer was excellent. Queue was a bit long during lunch hours.' },
-      { _id: id(), vendor_id: v2._id, user_id: s1._id, rating: 4, comment: 'Chicken burger is quite good. Fries always hot and crispy.' },
-      { _id: id(), vendor_id: v2._id, user_id: s3._id, rating: 5, comment: 'Best fast food on campus. Highly recommend the chicken wrap!' },
-      { _id: id(), vendor_id: v3._id, user_id: s2._id, rating: 4, comment: 'Biryani is authentic. The samosas are perfect with buttermilk.' },
-      { _id: id(), vendor_id: v4._id, user_id: s4._id, rating: 5, comment: 'MBA Café is a hidden gem — great coffee and calm environment.' },
-      { _id: id(), vendor_id: v5._id, user_id: s3._id, rating: 4, comment: 'Fast service, good pav bhaji. Perfect after evening classes.' },
-      { _id: id(), vendor_id: v6._id, user_id: s4._id, rating: 5, comment: 'The chai here is legendary. Best ₹15 on campus!' },
+      {
+        _id: id(), vendor_id: vendors[0]._id, student_id: students[0]._id,
+        taste_score: 4, value_score: 5, overall_score: 4,
+        comment_text: 'Best biryani near campus. The half portion is perfect for ₹130. Dal fry is also good.',
+      },
+      {
+        _id: id(), vendor_id: vendors[1]._id, student_id: students[1]._id,
+        taste_score: 5, value_score: 4, overall_score: 5,
+        comment_text: 'Bismillah biryani is authentic — the masala hits different. Slightly pricey but worth it.',
+      },
+      {
+        _id: id(), vendor_id: vendors[2]._id, student_id: students[2]._id,
+        taste_score: 4, value_score: 4, overall_score: 4,
+        comment_text: 'Fried rice is good and fresh. Chicken manchuria is the star here.',
+      },
+      {
+        _id: id(), vendor_id: vendors[3]._id, student_id: students[3]._id,
+        taste_score: 5, value_score: 3, overall_score: 4,
+        comment_text: 'Mutton Mandi is a must try. Expensive but the portion size is huge.',
+      },
+      {
+        _id: id(), vendor_id: vendors[4]._id, student_id: students[0]._id,
+        taste_score: 4, value_score: 5, overall_score: 4,
+        comment_text: 'Military hotel meals for ₹120 is unbeatable value. Comes with full side dishes.',
+      },
     ]);
 
-    console.log('\n ✓  Seeding completed successfully!');
-    console.log('    6 vendors | 26 menu items | 8 reviews | 10 users\n');
+    console.log('\n ✓  Seeding complete! Real restaurants loaded.\n');
     process.exit(0);
   } catch (err) {
     console.error('[Seeder] Error:', err.message);
     process.exit(1);
   }
-};
+}
 
-seedData();
+seed();

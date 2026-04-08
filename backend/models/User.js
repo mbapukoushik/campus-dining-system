@@ -67,8 +67,8 @@ const UserSchema = new mongoose.Schema(
   }
 );
 
-// TDD §4.6: email index (unique already creates it; explicit for readability)
-UserSchema.index({ email: 1 }, { unique: true });
+// TDD §4.6: unique: true on the email field above already creates this index.
+// Do NOT re-declare it here — that causes the duplicate index warning on startup.
 
 // TDD §6.4 anomaly tripwire — account age check hits created_at
 UserSchema.index({ created_at: 1 });

@@ -23,6 +23,7 @@ const authRateLimiter = rateLimit({
   }),
 });
 
+
 // ─── POST /api/auth/google ────────────────────────────────────────────────────
 // Initiates the Google OAuth2 flow (TDD §5.1)
 router.post(
@@ -94,18 +95,13 @@ router.get(
         maxAge: 8 * 60 * 60 * 1000, // 8 hours in ms
       });
 
-      // Return minimal user payload — NEVER expose student_id (TDD §1.1)
-      return res.status(200).json({
-        message: 'Authentication successful',
-        user: {
-          email: user.email,
-          role: user.role,
-          is_verified: user.is_verified,
-        },
-      });
+      // Redirect back to the React frontend — NOT a JSON response.
+      // The browser navigated here directly during OAuth; we must send it home.
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      return res.redirect(frontendUrl);
     } catch (err) {
       console.error('[Auth] Callback error:', err.message);
-      return res.status(500).json({ error: 'Authentication failed' });
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=auth_failed`);
     }
   }
 );

@@ -1,6 +1,8 @@
 import React from 'react';
-import { Utensils } from 'lucide-react';
+import { Utensils, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useSearchParams } from 'react-router-dom';
+
 
 // Google G SVG icon
 const GoogleIcon = () => (
@@ -14,6 +16,8 @@ const GoogleIcon = () => (
 
 const LoginPage = () => {
   const { loginWithGoogle } = useAuth();
+  const [searchParams] = useSearchParams();
+  const hasError = searchParams.get('error') === 'auth_failed';
 
   return (
     <div className="login-page">
@@ -34,6 +38,13 @@ const LoginPage = () => {
 
         <div className="divider" style={{ margin: '2rem 0 1.5rem' }}></div>
 
+        {hasError && (
+          <div className="alert alert-error" style={{ marginBottom: '1rem', textAlign: 'left' }}>
+            <AlertCircle size={18} />
+            <span>Login failed. Please use your <strong>@srmap.edu.in</strong> Google account.</span>
+          </div>
+        )}
+
         <button className="google-btn" onClick={loginWithGoogle}>
           <GoogleIcon />
           Continue with Google
@@ -47,6 +58,7 @@ const LoginPage = () => {
       </div>
     </div>
   );
+
 };
 
 export default LoginPage;

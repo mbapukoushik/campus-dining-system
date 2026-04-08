@@ -79,6 +79,17 @@ const VendorSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    avg_rating: {
+      type: Number,
+      default: null,
+      min: 0,
+      max: 5,
+    },
+    current_wait_time: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   {
     _id: false,

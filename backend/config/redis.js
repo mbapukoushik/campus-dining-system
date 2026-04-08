@@ -5,7 +5,7 @@ const Redis = require('ioredis');
 /**
  * config/redis.js
  *
- * Initializes the ioredis client.
+ * Initialises the ioredis client.
  * NEVER hardcode REDIS_URL — always read from process.env (TDD §1.1)
  *
  * The singleton `redis` instance is exported and reused across all modules

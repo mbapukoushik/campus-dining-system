@@ -15,8 +15,8 @@ const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI, {
       maxPoolSize: 100,
-      readPreference: 'secondaryPreferred', // all reads routed to secondary replica
     });
+
 
     console.log(`[MongoDB] Connected: ${conn.connection.host}`);
 

@@ -86,9 +86,11 @@ label { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); displ
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .flex-row { display: flex; align-items: center; gap: 0.5rem; }
 .flex-col { display: flex; flex-direction: column; gap: 1rem; }
-.vendor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
-.page-header { margin-bottom: 2.5rem; }
-.page-header h1 { margin-bottom: 0.4rem; }
+.vendor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+.vendor-grid > a { border-top: 3px solid var(--accent); }
+.page-header { margin-bottom: 2rem; padding: 2rem 2.5rem; background: linear-gradient(135deg, var(--accent) 0%, #a83912 100%); border-radius: var(--radius); color: white; }
+.page-header h1 { color: white; font-size: 2.2rem; margin-bottom: 0.35rem; }
+.page-header p { color: rgba(255,255,255,0.82); line-height: 1.5; }
 .divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
 
 .alert { display: flex; align-items: flex-start; gap: 12px; padding: 1rem 1.25rem; border-radius: var(--radius-sm); font-size: 0.88rem; border: 1px solid; }
