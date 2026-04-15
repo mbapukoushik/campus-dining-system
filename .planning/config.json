@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "created": "2026-04-15",
+  "project": "Campus Dining & Vendor Quality Management System",
+  "milestone": "v1.0 — Academic Demo Release",
+  "currentPhase": 1,
+  "completedPhases": [],
+  "preferences": {
+    "commitStyle": "conventional",
+    "branchStrategy": "main",
+    "testRequired": true
+  }
+}
